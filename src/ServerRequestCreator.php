@@ -54,7 +54,10 @@ final class ServerRequestCreator implements ServerRequestCreatorInterface
         $post = null;
         if ('POST' === $this->getMethodFromEnv($server)) {
             foreach ($headers as $headerName => $headerValue) {
-                if (true === \is_int($headerName) || 'content-type' !== \strtolower($headerName)) {
+                if (true === \is_int($headerName)) {
+                    continue;
+                }
+                if ('content-type' !== \strtolower($headerName)) {
                     continue;
                 }
                 if (\in_array(
@@ -162,7 +165,7 @@ final class ServerRequestCreator implements ServerRequestCreatorInterface
     {
         $uri = $this->createUriFromArray($environment);
         if (empty($uri->getScheme())) {
-            $uri = $uri->withScheme('http');
+            return $uri->withScheme('http');
         }
 
         return $uri;
@@ -295,7 +298,7 @@ final class ServerRequestCreator implements ServerRequestCreatorInterface
         }
 
         if (isset($server['QUERY_STRING'])) {
-            $uri = $uri->withQuery($server['QUERY_STRING']);
+            return $uri->withQuery($server['QUERY_STRING']);
         }
 
         return $uri;
