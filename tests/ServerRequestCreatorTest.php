@@ -14,7 +14,7 @@ use Psr\Http\Message\UploadedFileInterface;
 
 class ServerRequestCreatorTest extends TestCase
 {
-    const NUMBER_OF_FILES = 11;
+    public const NUMBER_OF_FILES = 11;
 
     public static $filenames = [];
 
