@@ -10,6 +10,11 @@ $expected = [
         'reference' => 'f9a0862677e7b1b9bd8dc2ed459f48c7e06ff277',
         'version' => 'dev-remote-test-2026-10-07',
     ],
+    'psr/http-message' => [
+        'alias' => '2.0.0',
+        'reference' => 'c941fca6736161fe07e79fa83d85217b39411cef',
+        'version' => 'dev-remote-test-2026-10-07',
+    ],
     'nyholm/psr7' => [
         'alias' => '1.8.2',
         'reference' => '73208c4a426cbaef76adcd2eb1d8d2bac17ccbd2',
@@ -83,6 +88,63 @@ function validate_installed_php(array $map, array $versions, bool $quiet = false
     return !$failed;
 }
 
+function extract_dist_url_sha(string $url): ?string
+{
+    if (preg_match('#/(?:zipball|tarball)/([a-f0-9]{40})(?:/|$)#i', $url, $matches) === 1) {
+        return strtolower($matches[1]);
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, array{alias: string, reference: string, version: string}> $map
+ * @param array<string, array<string, mixed>> $packagesByName
+ */
+function validate_dist_references(array $map, array $packagesByName, bool $quiet = false): bool
+{
+    $failed = false;
+    foreach ($map as $name => $want) {
+        if (!isset($packagesByName[$name])) {
+            continue;
+        }
+        $package = $packagesByName[$name];
+        $sourceRef = strtolower((string) ($package['source']['reference'] ?? ''));
+        $wantRef = strtolower($want['reference']);
+        if ($sourceRef === '' || !hash_equals($wantRef, $sourceRef)) {
+            continue;
+        }
+        $distRef = strtolower((string) ($package['dist']['reference'] ?? ''));
+        if ($distRef === '' || !hash_equals($wantRef, $distRef)) {
+            if (!$quiet) {
+                fwrite(STDERR, sprintf(
+                    "check-cluster-pins: %s dist.reference mismatch (expected %s, got %s).\n",
+                    $name,
+                    $want['reference'],
+                    $package['dist']['reference'] ?? ''
+                ));
+            }
+            $failed = true;
+            continue;
+        }
+        $distUrl = (string) ($package['dist']['url'] ?? '');
+        $urlSha = $distUrl !== '' ? extract_dist_url_sha($distUrl) : null;
+        if ($urlSha === null || !hash_equals($wantRef, $urlSha)) {
+            if (!$quiet) {
+                fwrite(STDERR, sprintf(
+                    "check-cluster-pins: %s dist.url SHA mismatch (expected %s, url %s).\n",
+                    $name,
+                    $want['reference'],
+                    $distUrl
+                ));
+            }
+            $failed = true;
+        }
+    }
+
+    return !$failed;
+}
+
 /**
  * @param array<string, array{alias: string, reference: string, version: string}> $map
  * @param array<string, array<string, mixed>> $packagesByName
@@ -130,6 +192,10 @@ function validate_installed_json(array $map, array $packagesByName, bool $quiet 
             }
             $failed = true;
         }
+    }
+
+    if (!$failed) {
+        $failed = !validate_dist_references($map, $packagesByName, $quiet);
     }
 
     return !$failed;
@@ -252,9 +318,11 @@ $versions = $installed['versions'] ?? [];
 
 [$packagesByName, $references, $urls] = load_installed_json($installedJson);
 
+$wrongSha = str_repeat('b', 40);
+
 /** @var array<string, array<string, mixed>> $demoVersions */
 $demoVersions = json_decode(json_encode($versions), true);
-$demoVersions['nyholm/psr7']['reference'] = str_repeat('0', 40);
+$demoVersions['psr/http-factory']['reference'] = $wrongSha;
 if (validate_installed_php($expected, $demoVersions, true)) {
     fwrite(STDERR, "check-cluster-pins: wrong-SHA demo for installed.php did not fail.\n");
     exit(1);
@@ -266,7 +334,7 @@ if (!validate_installed_json($expected, $packagesByName)) {
 fwrite(STDOUT, "check-cluster-pins: demo OK (installed.php rejected wrong SHA)\n");
 
 $demoPackages = $packagesByName;
-$demoPackages['psr/http-factory']['source']['reference'] = str_repeat('1', 40);
+$demoPackages['psr/http-factory']['source']['reference'] = $wrongSha;
 if (validate_installed_json($expected, $demoPackages, true)) {
     fwrite(STDERR, "check-cluster-pins: wrong-SHA demo for installed.json did not fail.\n");
     exit(1);
@@ -277,7 +345,25 @@ if (!validate_installed_php($expected, $versions)) {
 }
 fwrite(STDOUT, "check-cluster-pins: demo OK (installed.json rejected wrong SHA)\n");
 
-if (!validate_installed_php($expected, $versions) || !validate_installed_json($expected, $packagesByName)) {
+$demoDist = $packagesByName;
+$demoDist['nyholm/psr7']['dist']['reference'] = $wrongSha;
+$demoDist['nyholm/psr7']['dist']['url'] = preg_replace(
+    '#/[a-f0-9]{40}(?=/|$)#i',
+    '/' . $wrongSha,
+    (string) $demoDist['nyholm/psr7']['dist']['url']
+);
+if (validate_dist_references($expected, $demoDist, true)) {
+    fwrite(STDERR, "check-cluster-pins: dist URL wrong-SHA demo did not fail.\n");
+    exit(1);
+}
+if (!validate_dist_references($expected, $packagesByName)) {
+    fwrite(STDERR, "check-cluster-pins: live dist metadata mismatch.\n");
+    exit(1);
+}
+fwrite(STDOUT, "check-cluster-pins: demo OK (dist rejected wrong SHA)\n");
+
+if (!validate_installed_php($expected, $versions)
+    || !validate_installed_json($expected, $packagesByName)) {
     exit(1);
 }
 
@@ -286,5 +372,5 @@ if (!validate_packagist_packages($packagist_packages, $versions, $references, $u
     exit(1);
 }
 
-fwrite(STDOUT, "check-cluster-pins: OK (2 packages)\n");
+fwrite(STDOUT, "check-cluster-pins: OK (3 packages)\n");
 exit(0);

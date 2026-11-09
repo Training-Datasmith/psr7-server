@@ -46,7 +46,7 @@
     },
     "scripts": {
         "test": [
-            "@php scripts/check-legacy-names.php",
+            "@php scripts/check-rename.php",
             "@php scripts/check-cluster-pins.php",
             "php -d error_reporting=32767 vendor/bin/phpunit --colors=never --no-coverage"
         ],

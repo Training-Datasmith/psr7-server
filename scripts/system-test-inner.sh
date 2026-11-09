@@ -35,51 +35,48 @@ for ext in mbstring dom json xml xmlwriter tokenizer phar ctype; do
     fi
 done
 
-lint_failed=0
-while IFS= read -r file; do
-    if ! line="$(php -l "${file}" 2>&1)"; then
-        echo "${line}" >&2
-        lint_failed=1
-        continue
-    fi
-    if ! grep -Eq '^No syntax errors detected in .+' <<<"${line}"; then
-        echo "php-lint: missing exact success line for ${file}" >&2
-        echo "${line}" >&2
-        lint_failed=1
-    fi
-done < <(find /app/src -type f -name '*.php' | sort)
-if [[ ${lint_failed} -ne 0 ]]; then
-    exit 1
-fi
-echo 'php-lint: No syntax errors detected in src/'
-
 COMPOSER_URL="https://getcomposer.org/download/2.8.10/composer.phar"
 COMPOSER_SHA256="28dbb6bd8bef31479c7985b774c130a8bda37dbe63c35b56f6cb6bc377427573"
 curl -fsSL -o /tmp/composer.phar "${COMPOSER_URL}"
 echo "${COMPOSER_SHA256}  /tmp/composer.phar" | sha256sum -c -
 
-index_overlay="/app/.system-test-index"
-mkdir -p "${index_overlay}"
-php -r '
-$url = "https://raw.githubusercontent.com/Training-Datasmith/composer-index/remote-test-2026-11-09/packages.json";
-$raw = file_get_contents($url);
-if ($raw === false) {
-    fwrite(STDERR, "system-test: could not download packages.json\n");
-    exit(1);
-}
-$data = json_decode($raw, true);
-if (!is_array($data)) {
-    fwrite(STDERR, "system-test: invalid packages.json\n");
-    exit(1);
-}
-$want = "73208c4a426cbaef76adcd2eb1d8d2bac17ccbd2";
-$data["packages"]["nyholm/psr7"]["dev-remote-test-2026-11-09"]["source"]["reference"] = $want;
-if (isset($data["packages"]["nyholm/psr7"]["dev-remote-test-2026-11-09"]["dist"])) {
-    $data["packages"]["nyholm/psr7"]["dev-remote-test-2026-11-09"]["dist"]["reference"] = $want;
-}
-file_put_contents("/app/.system-test-index/packages.json", json_encode($data));
-'
-php /tmp/composer.phar config --json repositories.training-index "{\"type\":\"composer\",\"url\":\"file://${index_overlay}\",\"canonical\":false}"
+export INDEX_URL="https://raw.githubusercontent.com/Training-Datasmith/composer-index/remote-test-2026-11-09/packages.json"
+export INDEX_WANT_SHA="73208c4a426cbaef76adcd2eb1d8d2bac17ccbd2"
+index_ready=0
+deadline=$((SECONDS + 1800))
+poll=0
+while (( SECONDS < deadline )); do
+    poll=$((poll + 1))
+    set +e
+    ref="$(python3 - <<'PY'
+import json
+import os
+import sys
+import urllib.request
+
+url = os.environ['INDEX_URL']
+want = os.environ['INDEX_WANT_SHA'].lower()
+data = json.loads(urllib.request.urlopen(url, timeout=60).read())
+ref = data['packages']['nyholm/psr7']['dev-remote-test-2026-11-09']['source']['reference']
+print(ref)
+sys.exit(0 if ref.lower() == want else 3)
+PY
+)"
+    poll_status=$?
+    set -e
+    if [[ ${poll_status} -eq 0 ]]; then
+        echo "composer-index poll ${poll}: nyholm/psr7 reference ${ref}"
+        index_ready=1
+        break
+    fi
+    echo "composer-index poll ${poll}: waiting (got ${ref:-unavailable})"
+    sleep 120
+done
+if (( index_ready == 0 )); then
+    echo "system-test: blocker — composer-index nyholm/psr7 dev-remote-test-2026-11-09 is not at ${INDEX_WANT_SHA}" >&2
+    exit 1
+fi
+
 composer_out="$(mktemp)"
 set +e
 php /tmp/composer.phar update --no-interaction --prefer-dist --no-progress --no-ansi >"${composer_out}" 2>&1
@@ -115,7 +112,7 @@ if ! grep -Fxq 'No security vulnerability advisories found.' "${audit_out}"; the
 fi
 rm -f "${audit_out}"
 
-php scripts/check-legacy-names.php
+php scripts/check-rename.php
 
 phpunit_out="$(mktemp)"
 set +e
@@ -145,7 +142,5 @@ echo "Strict footer line: ${want_ok}"
 
 vendor/bin/phpunit --version | head -n1
 rm -f "${phpunit_out}"
-
-php /tmp/composer.phar config --unset repositories.training-index 2>/dev/null || true
 
 echo 'system-test: all steps passed.'

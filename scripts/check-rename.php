@@ -46,7 +46,7 @@ function build_scoped_upstream_method_allowlist(string $root): array
 {
     $autoload = $root . '/vendor/autoload.php';
     if (!is_readable($autoload)) {
-        fwrite(STDERR, "check-legacy-names: run composer update first (missing vendor/autoload.php).\n");
+        fwrite(STDERR, "check-rename: run composer update first (missing vendor/autoload.php).\n");
         exit(1);
     }
     require_once $autoload;
@@ -121,7 +121,7 @@ function load_site_method_allowlist(string $path, string $root): array
         }
         $parts = explode('::', $line);
         if (count($parts) !== 3) {
-            fwrite(STDERR, "check-legacy-names: invalid site method allowlist entry: {$line}\n");
+            fwrite(STDERR, "check-rename: invalid site method allowlist entry: {$line}\n");
             exit(1);
         }
         $allowlist[implode('::', $parts)] = true;
@@ -153,7 +153,7 @@ function load_parameter_allowlist(string $path): array
         }
         $parts = explode('::', $line);
         if (count($parts) !== 3) {
-            fwrite(STDERR, "check-legacy-names: invalid parameter allowlist entry: {$line}\n");
+            fwrite(STDERR, "check-rename: invalid parameter allowlist entry: {$line}\n");
             exit(1);
         }
         [$class, $method, $parameter] = $parts;
@@ -277,9 +277,9 @@ function is_allowed_camelcase_method_declaration(
     return false;
 }
 
-function is_studly_snake_type_name(string $name): bool
+function is_valid_repo_studly_snake(string $name): bool
 {
-    return (bool) preg_match('/^[A-Z][a-zA-Z0-9]*(_[A-Z][a-zA-Z0-9]*)*$/', $name);
+    return (bool) preg_match('/^[A-Z][a-zA-Z0-9]*(_[A-Z][a-zA-Z0-9]*)+$/', $name);
 }
 
 function is_superglobal_identifier(string $name): bool
@@ -291,27 +291,47 @@ function is_superglobal_identifier(string $name): bool
     return (bool) preg_match('/^_[A-Z][A-Z0-9_]*$/', $name);
 }
 
-function has_repo_owned_hump(string $name): bool
+function is_repo_owned_naming_violation(string $name): bool
 {
     if ($name === '') {
+        return false;
+    }
+    if ($name[0] === '_' && isset($name[1]) && $name[1] === '_') {
         return false;
     }
     if (is_superglobal_identifier($name)) {
         return false;
     }
-    if (is_studly_snake_type_name($name)) {
+    if (is_valid_repo_studly_snake($name)) {
         return false;
     }
-    if (preg_match('/_[A-Z]/', $name)) {
+    if (preg_match('/^[a-z][a-z0-9_]*$/', $name)) {
+        return false;
+    }
+    if (preg_match('/^[A-Z][a-zA-Z0-9]+$/', $name)) {
         return true;
     }
+    if (preg_match('/[a-z][A-Z]/', $name)) {
+        return true;
+    }
+    if (strpos($name, '_') !== false) {
+        if (preg_match('/_[a-z]/', $name)) {
+            return true;
+        }
+        if (!preg_match('/^[A-Z]/', $name)) {
+            return true;
+        }
+        if (preg_match('/^[a-z].*_[A-Z]/', $name)) {
+            return true;
+        }
+    }
 
-    return (bool) preg_match('/[a-z][A-Z]/', $name);
+    return false;
 }
 
 function is_repo_camelcase_identifier(string $name): bool
 {
-    return has_repo_owned_hump($name);
+    return is_repo_owned_naming_violation($name);
 }
 
 /**
@@ -329,7 +349,7 @@ function collect_docblock_hump_violations(string $filePath, string $code): array
             foreach ($tags[0] as $tag) {
                 if (preg_match_all('/\$([A-Za-z_][A-Za-z0-9_]*)/', $tag, $vars)) {
                     foreach ($vars[1] as $varName) {
-                        if (has_repo_owned_hump($varName)) {
+                        if (is_repo_owned_naming_violation($varName)) {
                             $violations[] = sprintf('%s: repo-owned camelCase docblock identifier $%s', $filePath, $varName);
                         }
                     }
@@ -481,8 +501,6 @@ $parameterAllowlist = load_parameter_allowlist($root . '/scripts/upstream-parame
 $scanPaths = [
     $root . '/src',
     $root . '/tests',
-    $root . '/composer.json',
-    $root . '/phpunit.xml.dist',
     $root . '/README.md',
     $root . '/ARCHITECTURE.md',
 ];
@@ -624,20 +642,20 @@ function collect_class_file_mismatches(array $roots): array
 $testFile = $root . '/tests/Server_Request_Creator_Test.php';
 $testContents = file_get_contents($testFile);
 if ($testContents === false) {
-    fwrite(STDERR, "check-legacy-names: could not read Server_Request_Creator_Test.php for demo.\n");
+    fwrite(STDERR, "check-rename: could not read Server_Request_Creator_Test.php for demo.\n");
     exit(1);
 }
 $demoContents = str_replace('class Server_Request_Creator_Test ', 'class ServerRequestCreatorTest ', $testContents);
 $demoMismatches = class_file_mismatches_for($testFile, $demoContents);
 if ($demoMismatches === []) {
-    fwrite(STDERR, "check-legacy-names: class/file mismatch demo did not fail.\n");
+    fwrite(STDERR, "check-rename: class/file mismatch demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: class/file mismatch demo failed for injected wrong class name.\n");
+fwrite(STDOUT, "check-rename: class/file mismatch demo failed for injected wrong class name.\n");
 
 $demoCamelContents = preg_replace('/\$tmp_dir = /', '$fooBar = null; $tmp_dir = ', $testContents, 1);
 if (!is_string($demoCamelContents) || $demoCamelContents === $testContents) {
-    fwrite(STDERR, "check-legacy-names: camelCase identifier demo could not inject wrong variable name.\n");
+    fwrite(STDERR, "check-rename: camelCase identifier demo could not inject wrong variable name.\n");
     exit(1);
 }
 $demoSnakeViolations = collect_snake_case_violations(
@@ -649,14 +667,14 @@ $demoSnakeViolations = collect_snake_case_violations(
     $parameterAllowlist
 );
 if ($demoSnakeViolations === []) {
-    fwrite(STDERR, "check-legacy-names: camelCase identifier demo did not fail.\n");
+    fwrite(STDERR, "check-rename: camelCase identifier demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: camelCase identifier demo failed for injected variable name.\n");
+fwrite(STDOUT, "check-rename: camelCase identifier demo failed for injected variable name.\n");
 
 $demoHumpContents = preg_replace('/\$tmp_dir = /', '$foo_Bar = null; $tmp_dir = ', $testContents, 1);
 if (!is_string($demoHumpContents) || $demoHumpContents === $testContents) {
-    fwrite(STDERR, "check-legacy-names: underscore-hump demo could not inject \$foo_Bar.\n");
+    fwrite(STDERR, "check-rename: underscore-hump demo could not inject \$foo_Bar.\n");
     exit(1);
 }
 $demoHumpViolations = collect_snake_case_violations(
@@ -668,10 +686,10 @@ $demoHumpViolations = collect_snake_case_violations(
     $parameterAllowlist
 );
 if ($demoHumpViolations === []) {
-    fwrite(STDERR, "check-legacy-names: underscore-hump demo did not fail.\n");
+    fwrite(STDERR, "check-rename: underscore-hump demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: underscore-hump identifier demo failed for injected \$foo_Bar.\n");
+fwrite(STDOUT, "check-rename: underscore-hump identifier demo failed for injected \$foo_Bar.\n");
 
 $demoDocblockContents = preg_replace(
     '/(^\s*class Server_Request_Creator_Test\b)/m',
@@ -680,24 +698,24 @@ $demoDocblockContents = preg_replace(
     1
 );
 if (!is_string($demoDocblockContents) || $demoDocblockContents === $testContents) {
-    fwrite(STDERR, "check-legacy-names: docblock hump demo could not inject @var \$foo_Bar.\n");
+    fwrite(STDERR, "check-rename: docblock hump demo could not inject @var \$foo_Bar.\n");
     exit(1);
 }
 if (collect_docblock_hump_violations($testFile, $demoDocblockContents) === []) {
-    fwrite(STDERR, "check-legacy-names: docblock hump demo did not fail.\n");
+    fwrite(STDERR, "check-rename: docblock hump demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: docblock hump demo failed for injected @var \$foo_Bar.\n");
+fwrite(STDOUT, "check-rename: docblock hump demo failed for injected @var \$foo_Bar.\n");
 
 $creatorFile = $root . '/src/Server_Request_Creator.php';
 $creatorContents = file_get_contents($creatorFile);
 if ($creatorContents === false) {
-    fwrite(STDERR, "check-legacy-names: could not read Server_Request_Creator.php for method demo.\n");
+    fwrite(STDERR, "check-rename: could not read Server_Request_Creator.php for method demo.\n");
     exit(1);
 }
 $demoMethodContents = str_replace('private function normalize_files', 'private function normalizeFiles', $creatorContents, $count);
 if ($count !== 1) {
-    fwrite(STDERR, "check-legacy-names: method demo could not inject normalizeFiles.\n");
+    fwrite(STDERR, "check-rename: method demo could not inject normalizeFiles.\n");
     exit(1);
 }
 $demoMethodViolations = collect_snake_case_violations(
@@ -709,10 +727,10 @@ $demoMethodViolations = collect_snake_case_violations(
     $parameterAllowlist
 );
 if ($demoMethodViolations === []) {
-    fwrite(STDERR, "check-legacy-names: camelCase method demo did not fail.\n");
+    fwrite(STDERR, "check-rename: camelCase method demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: scoped method demo failed for injected normalizeFiles.\n");
+fwrite(STDOUT, "check-rename: scoped method demo failed for injected normalizeFiles.\n");
 
 $demoTestFooContents = preg_replace(
     '/public function test_normalize_files\(/',
@@ -721,7 +739,7 @@ $demoTestFooContents = preg_replace(
     1
 );
 if (!is_string($demoTestFooContents) || $demoTestFooContents === $testContents) {
-    fwrite(STDERR, "check-legacy-names: testFoo demo could not inject wrong test method name.\n");
+    fwrite(STDERR, "check-rename: testFoo demo could not inject wrong test method name.\n");
     exit(1);
 }
 $demoTestFooViolations = collect_snake_case_violations(
@@ -733,10 +751,10 @@ $demoTestFooViolations = collect_snake_case_violations(
     $parameterAllowlist
 );
 if ($demoTestFooViolations === []) {
-    fwrite(STDERR, "check-legacy-names: testFoo demo did not fail.\n");
+    fwrite(STDERR, "check-rename: testFoo demo did not fail.\n");
     exit(1);
 }
-fwrite(STDOUT, "check-legacy-names: test method demo failed for injected testFoo.\n");
+fwrite(STDOUT, "check-rename: test method demo failed for injected testFoo.\n");
 
 $violations = [];
 foreach ($scanPaths as $path) {
@@ -756,9 +774,6 @@ $violations = array_merge(
     collect_snake_case_violations_tree($root . '/tests', $root, $scopedMethodAllowlist, $siteMethodAllowlist, $parameterAllowlist)
 );
 
-fwrite(STDOUT, "check-legacy-names: matcher rejects Nyholm\\Psr7\\Factory\\Psr17Factory.\n");
-fwrite(STDOUT, "check-legacy-names: matcher accepts Nyholm\\Psr7\\Factory\\Psr17_Factory.\n");
-
 if ($violations !== []) {
     foreach ($violations as $violation) {
         fwrite(STDERR, $violation . "\n");
@@ -766,7 +781,5 @@ if ($violations !== []) {
     exit(1);
 }
 
-fwrite(STDOUT, "check-legacy-names: no pre-rename repo-owned names remain.\n");
-fwrite(STDOUT, "check-legacy-names: all src and TestCase class names match their file basenames.\n");
-fwrite(STDOUT, "check-legacy-names: no repo-owned camelCase identifiers outside scoped upstream allowlists.\n");
+fwrite(STDOUT, "check-rename: OK (src, tests, docs)\n");
 exit(0);

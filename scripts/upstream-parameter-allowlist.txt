@@ -1,14 +1,4 @@
 # CamelCase parameter names allowed only inside the listed class method body/signature.
 # Format: ClassName::methodName::parameterName
-Request_Trait::withRequestTarget::requestTarget
-Request_Trait::withUri::preserveHost
-Response::withStatus::reasonPhrase
-Uploaded_File::moveTo::targetPath
-Psr17_Factory::createResponse::reasonPhrase
 Psr17_Factory::createUploadedFile::clientFilename
 Psr17_Factory::createUploadedFile::clientMediaType
-Psr17_Factory::createServerRequest::serverParams
-Httplug_Factory::createRequest::protocolVersion
-Httplug_Factory::createResponse::statusCode
-Httplug_Factory::createResponse::reasonPhrase
-Server_Request::withUploadedFiles::uploadedFiles
