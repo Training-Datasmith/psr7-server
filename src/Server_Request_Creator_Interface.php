@@ -1,10 +1,12 @@
 <?php
 
-declare (strict_types=1);
+declare(strict_types=1);
+
 namespace Nyholm\Psr7Server;
 
-use Psr\Http\Message\Server_Request_Interface;
-use Psr\Http\Message\Stream_Interface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamInterface;
+
 /**
  * @author Tobias Nyholm <tobias.nyholm@gmail.com>
  * @author Martijn van der Ven <martijn@vanderven.se>
@@ -15,12 +17,13 @@ interface Server_Request_Creator_Interface
      * Create a new server request from the current environment variables.
      * Defaults to a GET request to minimise the risk of an \InvalidArgumentException.
      * Includes the current request headers as supplied by the server through `getallheaders()`.
-     * If `getallheaders()` is unavailable on the current server it will fallback to its own `getHeadersFromServer()` method.
+     * If `getallheaders()` is unavailable on the current server it will fallback to its own `get_headers_from_server()` method.
      * Defaults to php://input for the request body.
      *
      * @throws \InvalidArgumentException if no valid method or URI can be determined
      */
-    public function from_globals(): Server_Request_Interface;
+    public function from_globals(): ServerRequestInterface;
+
     /**
      * Create a new server request from a set of arrays.
      *
@@ -30,11 +33,20 @@ interface Server_Request_Creator_Interface
      * @param array                                $get     typically $_GET or similar structure
      * @param array|null                           $post    typically $_POST or similar structure, represents parsed request body
      * @param array                                $files   typically $_FILES or similar structure
-     * @param StreamInterface|resource|string|null $body    Typically stdIn
+     * @param StreamInterface|resource|string|null $body    Typically php://input
      *
      * @throws \InvalidArgumentException if no valid method or URI can be determined
      */
-    public function from_arrays(array $server, array $headers = [], array $cookie = [], array $get = [], ?array $post = null, array $files = [], $body = null): Server_Request_Interface;
+    public function from_arrays(
+        array $server,
+        array $headers = [],
+        array $cookie = [],
+        array $get = [],
+        ?array $post = null,
+        array $files = [],
+        $body = null
+    ): ServerRequestInterface;
+
     /**
      * Get parsed headers from ($_SERVER) array.
      *

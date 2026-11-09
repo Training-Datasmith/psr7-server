@@ -25,7 +25,7 @@ src/
 ## Dependency Flow
 
 ```
-Server_Request_Creator::fromGlobals()
+Server_Request_Creator::from_globals()
   └─> reads $_SERVER, $_GET, $_POST, $_COOKIE, $_FILES
   └─> ServerRequestFactoryInterface::createServerRequest()
   └─> UriFactoryInterface::createUri()

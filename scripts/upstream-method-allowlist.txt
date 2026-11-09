@@ -1,0 +1,10 @@
+# Site-scoped camelCase method names (path relative to repo root::ClassName::methodName).
+tests/Integration/Request_Test.php::Request_Test::createSubject
+tests/Integration/Response_Test.php::Response_Test::createSubject
+tests/Integration/Server_Request_Test.php::Server_Request_Test::createSubject
+tests/Integration/Stream_Test.php::Stream_Test::createStream
+tests/Integration/Uploaded_File_Test.php::Uploaded_File_Test::createSubject
+tests/Integration/Uri_Test.php::Uri_Test::createUri
+tests/Server_Request_Creator_Test.php::Server_Request_Creator_Test::setUp
+tests/Server_Request_Creator_Test.php::Server_Request_Creator_Test::setUpBeforeClass
+tests/Server_Request_Creator_Test.php::Server_Request_Creator_Test::init_files

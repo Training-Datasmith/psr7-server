@@ -5,30 +5,30 @@ declare(strict_types=1);
 namespace Tests\Nyholm\Psr7Server;
 
 use Nyholm\NSA;
-use Nyholm\Psr7\UploadedFile;
+use Nyholm\Psr7\Uploaded_File;
 use Nyholm\Psr7\Uri;
-use Nyholm\Psr7Server\ServerRequestCreator;
+use Nyholm\Psr7Server\Server_Request_Creator;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;
 
-class ServerRequestCreatorTest extends TestCase
+class Server_Request_Creator_Test extends TestCase
 {
     public const NUMBER_OF_FILES = 11;
 
     public static $filenames = [];
 
-    /** @var ServerRequestCreator */
+    /** @var Server_Request_Creator */
     private $creator;
 
-    public static function initFiles()
+    public static function init_files()
     {
         if (!empty(self::$filenames)) {
             return;
         }
-        $tmpDir = sys_get_temp_dir();
+        $tmp_dir = sys_get_temp_dir();
         for ($i = 0; $i < self::NUMBER_OF_FILES; ++$i) {
-            self::$filenames[] = $filename = $tmpDir.'/file_'.$i;
+            self::$filenames[] = $filename = $tmp_dir.'/file_'.$i;
             file_put_contents($filename, 'foo'.$i);
         }
     }
@@ -36,25 +36,25 @@ class ServerRequestCreatorTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        self::initFiles();
+        self::init_files();
     }
 
     protected function setUp(): void
     {
         parent::setUp();
-        $psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
+        $psr17_factory = new \Nyholm\Psr7\Factory\Psr17_Factory();
 
-        $this->creator = new ServerRequestCreator(
-            $psr17Factory,
-            $psr17Factory,
-            $psr17Factory,
-            $psr17Factory
+        $this->creator = new Server_Request_Creator(
+            $psr17_factory,
+            $psr17_factory,
+            $psr17_factory,
+            $psr17_factory
         );
     }
 
-    public function dataNormalizeFiles()
+    public function data_normalize_files()
     {
-        self::initFiles();
+        self::init_files();
 
         return [
             'Single file' => [
@@ -68,7 +68,7 @@ class ServerRequestCreatorTest extends TestCase
                     ],
                 ],
                 [
-                    'file' => new UploadedFile(
+                    'file' => new Uploaded_File(
                         self::$filenames[0],
                         123,
                         UPLOAD_ERR_OK,
@@ -79,7 +79,7 @@ class ServerRequestCreatorTest extends TestCase
             ],
             'Already Converted' => [
                 [
-                    'file' => new UploadedFile(
+                    'file' => new Uploaded_File(
                         self::$filenames[1],
                         123,
                         UPLOAD_ERR_OK,
@@ -88,7 +88,7 @@ class ServerRequestCreatorTest extends TestCase
                     ),
                 ],
                 [
-                    'file' => new UploadedFile(
+                    'file' => new Uploaded_File(
                         self::$filenames[1],
                         123,
                         UPLOAD_ERR_OK,
@@ -100,14 +100,14 @@ class ServerRequestCreatorTest extends TestCase
             'Already Converted array' => [
                 [
                     'file' => [
-                        new UploadedFile(
+                        new Uploaded_File(
                             self::$filenames[2],
                             123,
                             UPLOAD_ERR_OK,
                             'MyFile.txt',
                             'text/plain'
                         ),
-                        new UploadedFile(
+                        new Uploaded_File(
                             '',
                             0,
                             UPLOAD_ERR_NO_FILE,
@@ -118,14 +118,14 @@ class ServerRequestCreatorTest extends TestCase
                 ],
                 [
                     'file' => [
-                        new UploadedFile(
+                        new Uploaded_File(
                             self::$filenames[2],
                             123,
                             UPLOAD_ERR_OK,
                             'MyFile.txt',
                             'text/plain'
                         ),
-                        new UploadedFile(
+                        new Uploaded_File(
                             '',
                             0,
                             UPLOAD_ERR_NO_FILE,
@@ -153,14 +153,14 @@ class ServerRequestCreatorTest extends TestCase
                     ],
                 ],
                 [
-                    'text_file' => new UploadedFile(
+                    'text_file' => new Uploaded_File(
                         self::$filenames[3],
                         123,
                         UPLOAD_ERR_OK,
                         'MyFile.txt',
                         'text/plain'
                     ),
-                    'image_file' => new UploadedFile(
+                    'image_file' => new Uploaded_File(
                         self::$filenames[4],
                         0,
                         UPLOAD_ERR_NO_FILE,
@@ -233,14 +233,14 @@ class ServerRequestCreatorTest extends TestCase
                 ],
                 [
                     'file' => [
-                        0 => new UploadedFile(
+                        0 => new Uploaded_File(
                             self::$filenames[5],
                             123,
                             UPLOAD_ERR_OK,
                             'MyFile.txt',
                             'text/plain'
                         ),
-                        1 => new UploadedFile(
+                        1 => new Uploaded_File(
                             self::$filenames[6],
                             7349,
                             UPLOAD_ERR_OK,
@@ -249,7 +249,7 @@ class ServerRequestCreatorTest extends TestCase
                         ),
                     ],
                     'nested' => [
-                        'other' => new UploadedFile(
+                        'other' => new Uploaded_File(
                             self::$filenames[7],
                             421,
                             UPLOAD_ERR_OK,
@@ -257,14 +257,14 @@ class ServerRequestCreatorTest extends TestCase
                             'text/plain'
                         ),
                         'test' => [
-                            0 => new UploadedFile(
+                            0 => new Uploaded_File(
                                 self::$filenames[8],
                                 32,
                                 UPLOAD_ERR_OK,
                                 'Stuff.txt',
                                 'text/plain'
                             ),
-                            1 => new UploadedFile(
+                            1 => new Uploaded_File(
                                 self::$filenames[9],
                                 0,
                                 UPLOAD_ERR_NO_FILE,
@@ -279,28 +279,28 @@ class ServerRequestCreatorTest extends TestCase
     }
 
     /**
-     * @dataProvider dataNormalizeFiles
+     * @dataProvider data_normalize_files
      */
-    public function testNormalizeFiles($files, $expected)
+    public function test_normalize_files($files, $expected)
     {
         $result = $this->creator
-            ->fromArrays(['REQUEST_METHOD' => 'POST'], [], [], [], [], $files)
+            ->from_arrays(['REQUEST_METHOD' => 'POST'], [], [], [], [], $files)
             ->getUploadedFiles();
 
-        $validateInner = function (UploadedFileInterface $expectedFile, UploadedFileInterface $file) {
-            $this->assertEquals($expectedFile->getSize(), $file->getSize());
-            $this->assertEquals($expectedFile->getError(), $file->getError());
-            $this->assertEquals($expectedFile->getClientFilename(), $file->getClientFilename());
-            $this->assertEquals($expectedFile->getClientMediaType(), $file->getClientMediaType());
-            if (UPLOAD_ERR_OK === $expectedFile->getError()) {
+        $validate_inner = function (UploadedFileInterface $expected_file, UploadedFileInterface $file) {
+            $this->assertEquals($expected_file->getSize(), $file->getSize());
+            $this->assertEquals($expected_file->getError(), $file->getError());
+            $this->assertEquals($expected_file->getClientFilename(), $file->getClientFilename());
+            $this->assertEquals($expected_file->getClientMediaType(), $file->getClientMediaType());
+            if (UPLOAD_ERR_OK === $expected_file->getError()) {
                 $this->assertEquals(
-                    $expectedFile->getStream()->getMetadata('uri'),
+                    $expected_file->getStream()->getMetadata('uri'),
                     $file->getStream()->getMetadata('uri')
                 );
             }
         };
 
-        $validate = function ($expected, $result, $self) use ($validateInner) {
+        $validate = function ($expected, $result, $self) use ($validate_inner) {
             foreach ($expected as $i => $e) {
                 if (is_array($e)) {
                     $self($e, $result[$i], $self);
@@ -308,32 +308,32 @@ class ServerRequestCreatorTest extends TestCase
                     continue;
                 }
                 $this->assertNotEmpty($result[$i]);
-                $validateInner($e, $result[$i]);
+                $validate_inner($e, $result[$i]);
             }
         };
 
         $validate($expected, $result, $validate);
     }
 
-    public function testNormalizeFilesRaisesException()
+    public function test_normalize_files_raises_exception()
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid value in files specification');
 
-        $this->creator->fromArrays(['REQUEST_METHOD' => 'POST'], [], [], [], [], ['test' => 'something']);
+        $this->creator->from_arrays(['REQUEST_METHOD' => 'POST'], [], [], [], [], ['test' => 'something']);
     }
 
-    public function testNumericHeaderFromHeaderArray()
+    public function test_numeric_header_from_header_array()
     {
         $server = [
             'REQUEST_METHOD' => 'GET',
         ];
 
-        $server = $this->creator->fromArrays($server, ['1234' => 'NumericHeader']);
+        $server = $this->creator->from_arrays($server, ['1234' => 'NumericHeader']);
         $this->assertEquals(['1234' => ['NumericHeader']], $server->getHeaders());
     }
 
-    public function testFromArrays()
+    public function test_from_arrays()
     {
         $server = [
             'PHP_SELF' => '/blog/article.php',
@@ -392,7 +392,7 @@ class ServerRequestCreatorTest extends TestCase
             ],
         ];
 
-        $server = $this->creator->fromArrays($server, [], $cookie, $get, $post, $files, 'foobar');
+        $server = $this->creator->from_arrays($server, [], $cookie, $get, $post, $files, 'foobar');
 
         $this->assertEquals('POST', $server->getMethod());
         $this->assertEquals(['Host' => ['www.blakesimpson.co.uk']], $server->getHeaders());
@@ -407,7 +407,7 @@ class ServerRequestCreatorTest extends TestCase
             $server->getUri()
         );
 
-        /** @var UploadedFile $file */
+        /** @var Uploaded_File $file */
         $file = $server->getUploadedFiles()['file'];
 
         $this->assertEquals(5, $file->getSize());
@@ -417,9 +417,9 @@ class ServerRequestCreatorTest extends TestCase
         $this->assertEquals(self::$filenames[10], $file->getStream()->getMetadata('uri'));
     }
 
-    public function dataGetUriFromGlobals()
+    public function data_get_uri_from_globals()
     {
-        self::initFiles();
+        self::init_files();
         $server = [
             'PHP_SELF' => '/blog/article.php',
             'GATEWAY_INTERFACE' => 'CGI/1.1',
@@ -498,17 +498,17 @@ class ServerRequestCreatorTest extends TestCase
     }
 
     /**
-     * @dataProvider dataGetUriFromGlobals
+     * @dataProvider data_get_uri_from_globals
      */
-    public function testGetUriFromGlobals($expected, $serverParams)
+    public function test_get_uri_from_globals($expected, $server_params)
     {
-        $this->assertEquals(new Uri($expected), NSA::invokeMethod($this->creator, 'createUriFromArray', $serverParams));
+        $this->assertEquals(new Uri($expected), NSA::invokeMethod($this->creator, 'create_uri_from_array', $server_params));
     }
 
     /**
      * Test from laminas/laminas-diactoros (formerly zendframework/zend-diactoros).
      */
-    public function testMarshalsExpectedHeadersFromServerArray()
+    public function test_marshals_expected_headers_from_server_array()
     {
         $server = [
             'HTTP_0' => 'NumericHeaderZero',
@@ -534,13 +534,13 @@ class ServerRequestCreatorTest extends TestCase
             'content-length' => 'UNSPECIFIED',
         ];
 
-        $this->assertSame($expected, ServerRequestCreator::getHeadersFromServer($server));
+        $this->assertSame($expected, Server_Request_Creator::get_headers_from_server($server));
     }
 
     /**
      * Test from laminas/laminas-diactoros (formerly zendframework/zend-diactoros).
      */
-    public function testMarshalsVariablesPrefixedByApacheFromServerArray()
+    public function test_marshals_variables_prefixed_by_apache_from_server_array()
     {
         // Non-prefixed versions will be preferred
         $server = [
@@ -554,27 +554,27 @@ class ServerRequestCreatorTest extends TestCase
             'x-foo-bar' => 'nonprefixed',
         ];
 
-        $this->assertEquals($expected, ServerRequestCreator::getHeadersFromServer($server));
+        $this->assertEquals($expected, Server_Request_Creator::get_headers_from_server($server));
     }
 
     /**
      * Test the fallback for a failing StreamFactoryInterface::createStreamFromFile.
      */
-    public function testFailingStreamFromFile()
+    public function test_failing_stream_from_file()
     {
-        $psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
-        $psr17StreamFactory = $this->createMock(StreamFactoryInterface::class);
-        $psr17StreamFactory->method('createStreamFromFile')
+        $psr17_factory = new \Nyholm\Psr7\Factory\Psr17_Factory();
+        $psr17_stream_factory = $this->createMock(StreamFactoryInterface::class);
+        $psr17_stream_factory->method('createStreamFromFile')
             ->will($this->throwException(new \RuntimeException()));
-        $psr17StreamFactory->method('createStream')
-            ->will($this->returnCallback([$psr17Factory, 'createStream']));
-        $creator = new ServerRequestCreator(
-            $psr17Factory,
-            $psr17Factory,
-            $psr17Factory,
-            $psr17StreamFactory
+        $psr17_stream_factory->method('createStream')
+            ->will($this->returnCallback([$psr17_factory, 'createStream']));
+        $creator = new Server_Request_Creator(
+            $psr17_factory,
+            $psr17_factory,
+            $psr17_factory,
+            $psr17_stream_factory
         );
-        $expected = new UploadedFile(
+        $expected = new Uploaded_File(
             '',
             0,
             \UPLOAD_ERR_CANT_WRITE,
@@ -583,7 +583,7 @@ class ServerRequestCreatorTest extends TestCase
         );
         $created = NSA::invokeMethod(
             $creator,
-            'createUploadedFileFromSpec',
+            'create_uploaded_file_from_spec',
             [
                 'name' => 'MyFile.txt',
                 'type' => 'text/plain',
@@ -595,38 +595,38 @@ class ServerRequestCreatorTest extends TestCase
         $this->assertEquals($expected, $created);
     }
 
-    public function testNoParsedBodyWithoutPOSTMethod()
+    public function test_no_parsed_body_without_post_method()
     {
         $_POST = ['a' => 'b', 'c' => 'd'];
-        $instance = $this->creator->fromGlobals();
+        $instance = $this->creator->from_globals();
         $this->assertNull($instance->getParsedBody());
     }
 
     /**
      * @backupGlobals enabled
      */
-    public function testNoParsedBodyWithPOSTMethodWithoutContentType()
+    public function test_no_parsed_body_without_post_method_without_content_type()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = ['a' => 'b', 'c' => 'd'];
-        $instance = $this->creator->fromGlobals();
+        $instance = $this->creator->from_globals();
         $this->assertNull($instance->getParsedBody());
     }
 
     /**
      * @backupGlobals enabled
-     * @dataProvider dataContentTypesThatTriggerParsedBody
+     * @dataProvider data_content_types_that_trigger_parsed_body
      */
-    public function testParsedBodyWithPOSTMethodDifferentContentType($parsedBody, $contentType)
+    public function test_parsed_body_with_post_method_different_content_type($parsed_body, $content_type)
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_SERVER['HTTP_CONTENT_TYPE'] = $contentType;
+        $_SERVER['HTTP_CONTENT_TYPE'] = $content_type;
         $_POST = ['a' => 'b', 'c' => 'd'];
-        $instance = $this->creator->fromGlobals();
-        $this->assertSame($parsedBody ? $_POST : null, $instance->getParsedBody());
+        $instance = $this->creator->from_globals();
+        $this->assertSame($parsed_body ? $_POST : null, $instance->getParsedBody());
     }
 
-    public function dataContentTypesThatTriggerParsedBody()
+    public function data_content_types_that_trigger_parsed_body()
     {
         return [
             // Acceptable values
@@ -655,12 +655,12 @@ class ServerRequestCreatorTest extends TestCase
     /**
      * @backupGlobals enabled
      */
-    public function testNumericHeaderFromGlobals()
+    public function test_numeric_header_from_globals()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['HTTP_1234'] = 'NumericHeader';
 
-        $server = $this->creator->fromGlobals();
+        $server = $this->creator->from_globals();
         $this->assertEquals(['1234' => ['NumericHeader']], $server->getHeaders());
     }
 }

@@ -1,0 +1,4 @@
+# PHPUnit TestCase lifecycle methods are allowed only when declared on a TestCase subclass
+# and overriding PHPUnit\Framework\TestCase (see check-legacy-names.php).
+# PSR/upstream interface methods are allowed via reflection on the declaring class/trait.
+# Integration harness methods use site-scoped entries in upstream-method-allowlist.txt.

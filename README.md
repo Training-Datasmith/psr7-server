@@ -20,16 +20,16 @@ composer require nyholm/psr7-server
 
 ```php
 // Instanciate ANY PSR-17 factory implementations. Here is nyholm/psr7 as an example
-$psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
+$psr17_factory = new \Nyholm\Psr7\Factory\Psr17_Factory();
 
-$creator = new \Nyholm\Psr7Server\ServerRequestCreator(
-    $psr17Factory, // ServerRequestFactory
-    $psr17Factory, // UriFactory
-    $psr17Factory, // UploadedFileFactory
-    $psr17Factory  // StreamFactory
+$creator = new \Nyholm\Psr7Server\Server_Request_Creator(
+    $psr17_factory, // ServerRequestFactory
+    $psr17_factory, // UriFactory
+    $psr17_factory, // UploadedFileFactory
+    $psr17_factory  // StreamFactory
 );
 
-$serverRequest = $creator->fromGlobals();
+$server_request = $creator->from_globals();
 ```
 
 ## Other packages
