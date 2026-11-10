@@ -40,43 +40,6 @@ COMPOSER_SHA256="28dbb6bd8bef31479c7985b774c130a8bda37dbe63c35b56f6cb6bc37742757
 curl -fsSL -o /tmp/composer.phar "${COMPOSER_URL}"
 echo "${COMPOSER_SHA256}  /tmp/composer.phar" | sha256sum -c -
 
-export INDEX_URL="https://raw.githubusercontent.com/Training-Datasmith/composer-index/remote-test-2026-11-09/packages.json"
-export INDEX_WANT_SHA="73208c4a426cbaef76adcd2eb1d8d2bac17ccbd2"
-index_ready=0
-deadline=$((SECONDS + 1800))
-poll=0
-while (( SECONDS < deadline )); do
-    poll=$((poll + 1))
-    set +e
-    ref="$(python3 - <<'PY'
-import json
-import os
-import sys
-import urllib.request
-
-url = os.environ['INDEX_URL']
-want = os.environ['INDEX_WANT_SHA'].lower()
-data = json.loads(urllib.request.urlopen(url, timeout=60).read())
-ref = data['packages']['nyholm/psr7']['dev-remote-test-2026-11-09']['source']['reference']
-print(ref)
-sys.exit(0 if ref.lower() == want else 3)
-PY
-)"
-    poll_status=$?
-    set -e
-    if [[ ${poll_status} -eq 0 ]]; then
-        echo "composer-index poll ${poll}: nyholm/psr7 reference ${ref}"
-        index_ready=1
-        break
-    fi
-    echo "composer-index poll ${poll}: waiting (got ${ref:-unavailable})"
-    sleep 120
-done
-if (( index_ready == 0 )); then
-    echo "system-test: blocker — composer-index nyholm/psr7 dev-remote-test-2026-11-09 is not at ${INDEX_WANT_SHA}" >&2
-    exit 1
-fi
-
 composer_out="$(mktemp)"
 set +e
 php /tmp/composer.phar update --no-interaction --prefer-dist --no-progress --no-ansi >"${composer_out}" 2>&1

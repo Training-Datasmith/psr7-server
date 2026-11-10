@@ -31,6 +31,7 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^8.5.52",
+        "psr/http-message": "dev-remote-test-2026-10-07 as 2.0.0",
         "nyholm/psr7": "dev-remote-test-2026-11-09 as 1.8.2",
         "nyholm/nsa": "^1.1"
     },
