@@ -305,6 +305,9 @@ function is_repo_owned_naming_violation(string $name): bool
     if (is_valid_repo_studly_snake($name)) {
         return false;
     }
+    if (preg_match('/[0-9][A-Z]/', $name)) {
+        return true;
+    }
     if (preg_match('/^[a-z][a-z0-9_]*$/', $name)) {
         return false;
     }
@@ -449,7 +452,33 @@ function collect_snake_case_violations(
         }
     }
 
-    return array_merge($violations, collect_docblock_hump_violations($filePath, $code));
+    return array_merge(
+        $violations,
+        collect_docblock_hump_violations($filePath, $code),
+        collect_namespace_violations($filePath, $code)
+    );
+}
+
+/**
+ * @return list<string>
+ */
+function collect_namespace_violations(string $filePath, string $code): array
+{
+    $violations = [];
+    if (preg_match('/namespace\s+([^;]+);/', $code, $match) !== 1) {
+        return [];
+    }
+    $namespace = trim($match[1]);
+    foreach (explode('\\', $namespace) as $segment) {
+        if ($segment === '' || $segment === 'Nyholm' || $segment === 'Tests') {
+            continue;
+        }
+        if (is_repo_owned_naming_violation($segment)) {
+            $violations[] = sprintf('%s: repo-owned hump namespace segment %s', $filePath, $segment);
+        }
+    }
+
+    return $violations;
 }
 
 /**
@@ -517,6 +546,7 @@ $patterns = [
     '/\\bclass\\s+ServerRequestCreatorTest\\b/',
     '/\\bNyholm\\\\Psr7\\\\UploadedFile\\b/',
     '/\\bNyholm\\\\Psr7\\\\Factory\\\\Psr17Factory\\b/',
+    '/\\bNyholm\\\\Psr7Server\\b/',
     '/\\bfunction\\s+test[A-Z]/',
 ];
 
@@ -755,6 +785,22 @@ if ($demoTestFooViolations === []) {
     exit(1);
 }
 fwrite(STDOUT, "check-rename: test method demo failed for injected testFoo.\n");
+
+$demoNsContents = preg_replace(
+    '/namespace Nyholm\\\\Psr7_Server;/',
+    'namespace Nyholm\\Psr7Server;',
+    $creatorContents,
+    1
+);
+if (!is_string($demoNsContents) || $demoNsContents === $creatorContents) {
+    fwrite(STDERR, "check-rename: Psr7Server namespace demo could not inject wrong namespace.\n");
+    exit(1);
+}
+if (collect_namespace_violations($creatorFile, $demoNsContents) === []) {
+    fwrite(STDERR, "check-rename: Psr7Server namespace demo did not fail.\n");
+    exit(1);
+}
+fwrite(STDOUT, "check-rename: namespace demo failed for injected namespace Nyholm\\Psr7Server.\n");
 
 $violations = [];
 foreach ($scanPaths as $path) {

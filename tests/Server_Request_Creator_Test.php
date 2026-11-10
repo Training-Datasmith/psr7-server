@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Nyholm\Psr7Server;
+namespace Tests\Nyholm\Psr7_Server;
 
 use Nyholm\NSA;
 use Nyholm\Psr7\Uploaded_File;
 use Nyholm\Psr7\Uri;
-use Nyholm\Psr7Server\Server_Request_Creator;
+use Nyholm\Psr7_Server\Server_Request_Creator;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileInterface;

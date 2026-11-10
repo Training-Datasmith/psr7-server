@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nyholm\Psr7Server;
+namespace Nyholm\Psr7_Server;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;

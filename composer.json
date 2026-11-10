@@ -37,12 +37,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Nyholm\\Psr7Server\\": "src/"
+            "Nyholm\\Psr7_Server\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\Nyholm\\Psr7Server\\": "tests/"
+            "Tests\\Nyholm\\Psr7_Server\\": "tests/"
         }
     },
     "scripts": {

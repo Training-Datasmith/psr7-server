@@ -22,7 +22,7 @@ composer require nyholm/psr7-server
 // Instanciate ANY PSR-17 factory implementations. Here is nyholm/psr7 as an example
 $psr17_factory = new \Nyholm\Psr7\Factory\Psr17_Factory();
 
-$creator = new \Nyholm\Psr7Server\Server_Request_Creator(
+$creator = new \Nyholm\Psr7_Server\Server_Request_Creator(
     $psr17_factory, // ServerRequestFactory
     $psr17_factory, // UriFactory
     $psr17_factory, // UploadedFileFactory

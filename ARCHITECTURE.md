@@ -6,6 +6,8 @@ A PSR-7 `ServerRequest` creator (Nyholm PSR7 Server) that populates a `ServerReq
 
 ## Directory Structure
 
+Package namespace: `Nyholm\Psr7_Server` (tests: `Tests\Nyholm\Psr7_Server`).
+
 ```
 src/
   Server_Request_Creator.php           - Creates a PSR-7 ServerRequestInterface from PHP superglobals
